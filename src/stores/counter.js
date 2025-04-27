@@ -1,3 +1,5 @@
+// 这个store是框架预设的，实际上本项目不需要状态管理
+
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 

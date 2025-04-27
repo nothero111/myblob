@@ -1,33 +1,89 @@
 <script setup></script>
-
 <template>
-  <div>
-    <router-link>
-      <div class="title">
-        <h1>FLY&nbsp;</h1>
-        <h1>welcome</h1>
-      </div>
-    </router-link>
+  <div class="body">
+    <el-row>
+      <el-col :span="12" class="title">
+        <div class="title">
+          <svg width="400" height="200">
+            <text
+              x="90"
+              y="75"
+              dominant-baseline="middle"
+              text-anchor="middle"
+              fill="none"
+              stroke="black"
+              stroke-width="0.5"
+              transform="scale(2 2)"
+              font-size="60"
+            >
+              <animate
+                attributeName="stroke-dasharray"
+                values="0 100%; 100% 0"
+                dur="2s"
+                repeatCount="1"
+              />
+
+              小浪花
+            </text>
+          </svg>
+          <h1>welcome</h1>
+          <h4>路虽远，行则将至</h4>
+          <h5>欢迎来到浪花小站</h5>
+          <div class="last">
+            <h6>传送门：</h6>
+
+            <a href="https://github.com/nothero111?tab=repositories">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-github"></use>
+              </svg>
+            </a>
+            <a href="https://gitee.com/one__fly">
+              <svg class="icon" aria-hidden="true">
+                <use xlink:href="#icon-gitee"></use>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <style scoped lang="scss">
-div {
-  //width: 100vw;
-  height: 200vh;
-  background: $primary-color;
-  background-size: cover;
+.body {
+  width: 100vw;
+  height: 100vh;
+  background: $primary-color url('../assets/welcome.png') no-repeat right top;
+  background-size: 50%; /* 拉伸填充 */
   .title {
-    height: 200px;
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    flex-direction: row;
+    padding-top: 60px;
+    margin-left: 150px;
     font-size: 100px;
-    font-weight: 900;
-  }
-  .title:first-child {
-    margin-right: 100px;
+    user-select: none;
+    h1 {
+      font-weight: 900;
+    }
+    h4 {
+      font-size: 80px;
+    }
+    h5 {
+      margin-top: 20px;
+      font-size: 40px;
+      margin-bottom: 60px;
+    }
+    .last {
+      display: flex;
+      align-items: center;
+      h6 {
+        font-size: 20px;
+        width: 80px;
+      }
+      .icon {
+        margin-right: 5px;
+        font-size: 20px;
+        display: block;
+      }
+    }
   }
 }
 </style>

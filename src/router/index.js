@@ -12,8 +12,18 @@ const router = createRouter({
           path: 'welcomePage', //欢迎页面
           name: 'welcomePage',
           component: () => import('@/views/welcomePage.vue') // 明确加载组件
+        },
+        {
+          path: 'Article', //文章页面
+          name: 'ArticlePage',
+          component: () => import('@/views/article/myArticle.vue') // 明确加载组件
         }
       ]
+    },
+    {
+      path: '/managePage',
+      name: 'managePage',
+      component: () => import('@/views/manage/admin.vue') // 明确加载组件
     }
   ]
 })

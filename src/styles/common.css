@@ -3,10 +3,17 @@
 html {
   overflow: auto;
 }
-
+ .icon {
+   width: 1em;
+   height: 1em;
+   vertical-align: -0.15em;
+   fill: currentColor;
+   overflow: hidden;
+ }
 body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, code, form, fieldset, legend, input, button, textarea, p, blockquote, th, td {
   margin: 0;
   padding: 0;
+  box-sizing: content-box;
 }
 
 div, p {
