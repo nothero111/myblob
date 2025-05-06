@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import pinia from '@/stores'
 import 'amfe-flexible'
 import '@/styles/common.css'
 import '@/styles/js/rem.js'
@@ -13,7 +13,7 @@ import 'mavon-editor/dist/css/index.css'
 
 const app = createApp(App)
 
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
 app.use(mavonEditor)
 app.mount('#app')
