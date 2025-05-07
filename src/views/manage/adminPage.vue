@@ -1,10 +1,11 @@
 <script setup>
 // 因为是博客项目，管理系统暂时不会分页，也不做路由，组件处理，可能会在v2版本做以上处理
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import 'highlight.js/styles/github.css'
-import { uploadImg } from '@/api/article.js'
-import { getlocaldata, setlocaldata } from '@/utils/localstorage.js' // 引入高亮主题样式
+import { uploadArticle, uploadImg } from '@/api/article.js'
+import { getlocaldata, setlocaldata } from '@/utils/localstorage.js'
+import { ElMessage } from 'element-plus' // 引入高亮主题样式
 const drawer = ref(false)
 const tableData = [
   {
@@ -45,35 +46,57 @@ const tableData = [
   }
 ]
 const drawer_title = ref('添加文章')
+const defaultfrom = {
+  imgFile: [], // 存储图片路径
+  content: '', // markdown文本
+  title: '', // 标题
+  category: '', // 分类
+  date: '', // 发布时间
+  name: '' // 作者
+}
+let imgFile = ref([]) // 创建一个文件数组，用来存储上传的文件路径，便于删除
+let currentImageList = ref([]) // 定义一个数组用来存储用正则匹配到的到的图片路径
+let imgUrl = ref() // 创建一个图片路径，用来存储上传的图片路径，便于预览
+// markdown相关配置，包括图片上传，图片删除等等
+const form = ref({
+  ...defaultfrom
+})
 const editmyArticle = () => {
   drawer_title.value = '编辑文章'
   drawer.value = true
   // 在编辑文章的时候获取文章信息
 }
 
+watch(
+  form,
+  async (newVal) => {
+    if (drawer_title.value === '添加文章') {
+      // 存入本地，v2版本引入自动保存
+      await setlocaldata('form', newVal)
+    }
+  },
+  { deep: true }
+)
+
 // 添加文章
 const addArticle = async () => {
   drawer_title.value = '添加文章'
   drawer.value = true
   // 在添加文章的时候获取文章的草稿内容
-  form.value.content = await getlocaldata('content')
-  imgFile = getlocaldata('imgFile')
+  const content = await getlocaldata('content')
+  const imgFiles = await getlocaldata('imgFile')
+  form.value = await getlocaldata('form')
+
+  if (content) {
+    // 确保本地有内容再取，防止content被覆盖为null而报错
+    form.value.content = content
+  }
+  if (imgFiles) {
+    // 与content相同
+    imgFile.value = imgFiles
+    imgUrl.value = imgFile.value[0]
+  }
 }
-const defaultfrom = {
-  imgFile: [], // 存储图片路径
-  content: '', // markdown文本
-  title: '', // 标题
-  category: '', // 分类
-  data: '', // 发布时间
-  name: '' // 作者
-}
-// markdown相关配置，包括图片上传，图片删除等等
-const form = ref({
-  ...defaultfrom
-})
-const md = ref()
-let imgFile = [] // 创建一个文件数组，用来存储上传的文件路径，便于删除
-const imgUrl = ref() // 创建一个图片路径，用来存储上传的图片路径，便于预览
 const selectOption = [
   {
     value: '小记',
@@ -100,18 +123,9 @@ const selectOption = [
 const onselectFile = async (file) => {
   if (drawer_title.value === '添加文章') {
     // 判断之前是否上传过封面，如果上传过就删除之前的，上传新的
-    if (!imgFile[0]) {
-      // 如果数组0的位置为undefined说明没有上传
-      imgUrl.value = URL.createObjectURL(file.raw) // 预览图片
-      await uploadMyImg(0, file.raw) // 上传图片
-    } else {
-      // 否则的话要先做删除操作
-      // 删除图片
-      handleEditorImgDel(0)
-      // 删除图片后重新上传
-      imgUrl.value = URL.createObjectURL(file.raw) // 预览图片
-      await uploadMyImg(0, file.raw) // 上传图片
-    }
+    // 如果数组0的位置为undefined说明没有上传
+    imgUrl.value = URL.createObjectURL(file.raw) // 预览图片
+    await uploadMyImg(0, file.raw) // 上传图片
   }
 }
 // 把上传图片封装成一个函数
@@ -120,21 +134,30 @@ const uploadMyImg = async (pos, file) => {
   formdata.append('file', file)
   // 调用上传图片接口
   const res = await uploadImg(formdata)
-  imgFile[pos] = res.data.url
+  imgFile.value[pos] = res.data.url
+  await setlocaldata('imgFile', imgFile.value) // 把图片数组存到本地
   return res
 }
-const save = (value) => {
+// 工具函数：从Markdown提取图片URL
+function extractImagesFromMarkdown(md) {
+  const imgRegex = /!\[.*?\]\((.*?)\)/g
+  const matches = md.matchAll(imgRegex)
+  return Array.from(matches).map((match) => match[1])
+}
+// 工具函数，比较两个函数的不同之处
+
+const save = async (value) => {
   if (drawer_title.value === '添加文章') {
-    // 添加文章
     form.value.content = value
     // 存入本地，v2版本引入自动保存
-    setlocaldata('content', value)
-    setlocaldata('imgFile', imgFile)
+    await setlocaldata('content', value)
+    await setlocaldata('imgFile', imgFile.value)
   }
 }
 const handleEditorImgAdd = async (pos, $file) => {
   // 判断当前是编辑文章（如果编辑文章，图片数组和markdown数据从服务器获取，
   // 如果是添加文章，图片数据和markdown数据从本地获取，相当于本地的草稿，这些不存入服务器）
+  console.log(pos)
   if (drawer_title.value === '添加文章') {
     // 添加文章
     const res = await uploadMyImg(pos, $file) // 上传图片
@@ -155,13 +178,44 @@ const handleEditorImgAdd = async (pos, $file) => {
       }
       form.value.content = insertStr(str, index, nStr)
     }
+    await setlocaldata('content', form.value.content)
   }
 }
+// 图片的即时删除太麻烦了，考虑到博客的流量不会太大，所以，把所有图片全部上传
+// 而不在客户端做删除，在最终上传图片会附带一条markdown所有url路径的信息
+// 在服务端会比对这些路径信息，删除服务端保留的不存在客户端的路径信息下的图片
 const handleEditorImgDel = (pos) => {
-  delete imgFile[pos]
+  delete imgFile.value[pos]
+  setlocaldata('imgFile', imgFile.value)
+  setlocaldata('content', form.value.content)
+}
+const change = async (value) => {
+  // 实时更新当前图片列表
+  currentImageList.value = extractImagesFromMarkdown(value)
+  console.log(currentImageList.value)
+  currentImageList.value.forEach((item, index) => {
+    imgFile.value[index + 1] = item
+  })
+  // 在编辑文章的时候，如果修改了文章信息，需要把修改后的信息存入本地
+  await setlocaldata('imgFile', imgFile.value)
+  await setlocaldata('content', form.value.content)
+  await setlocaldata('form', form.value)
 }
 // 上传文件
-const Publish = () => {}
+const Publish = async () => {
+  form.value = await getlocaldata('form')
+  form.value.date = Date.now().toString()
+  form.value.name = (await getlocaldata('user')).user.name
+  form.value.imgFile = await getlocaldata('imgFile')
+  // 调用上传文章接口
+  const res = await uploadArticle(form.value)
+  ElMessage.success(res.data.message)
+  form.value = defaultfrom
+  await setlocaldata('form', {})
+  await setlocaldata('imgFile', [])
+  await setlocaldata('content', '')
+  imgUrl.value = null
+}
 </script>
 
 <template>
@@ -233,17 +287,17 @@ const Publish = () => {}
                 <div id="app">
                   <mavon-editor
                     style="height: 800px"
-                    :ref="md"
                     v-model="form.content"
                     :ishljs="true"
                     @imgAdd="handleEditorImgAdd"
                     @imgDel="handleEditorImgDel"
                     @save="save"
+                    @change="change"
                   />
                 </div>
               </el-form-item>
               <el-form-item>
-                <el-button @click="Publish" type="primary">发布</el-button>
+                <el-button @click="Publish" type="primary">提交</el-button>
               </el-form-item>
             </el-form>
           </el-card>

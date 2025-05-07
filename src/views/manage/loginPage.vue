@@ -30,10 +30,13 @@ const login = async () => {
     email: form.value.email,
     password: form.value.password
   })
-  console.log(res)
   userUserStore.setToken(res.data.token)
   userUserStore.setUser(res.data.userinfo)
-  await router.push('/')
+  if (res.data.userinfo.level === 'normal') {
+    await router.push('/')
+  } else {
+    await router.push('/managePage')
+  }
 }
 </script>
 

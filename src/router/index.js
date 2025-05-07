@@ -23,12 +23,12 @@ const router = createRouter({
     {
       path: '/managePage',
       name: 'managePage',
-      component: () => import('@/views/manage/admin.vue') // 明确加载组件
+      component: () => import('@/views/manage/adminPage.vue') // 明确加载组件
     },
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/manage/login.vue') // 明确加载组件
+      component: () => import('@/views/manage/loginPage.vue') // 明确加载组件
     }
   ]
 })
