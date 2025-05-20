@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useUserStore } from '@/stores/index.js'
 import { userLoginService } from '@/api/user.js'
 import { useRouter } from 'vue-router'
+import { removeLocalData } from '@/utils/localstorage.js'
 const form = ref({
   email: '',
   password: ''
@@ -35,7 +36,7 @@ const login = async () => {
   if (res.data.userinfo.level === 'normal') {
     await router.push('/')
   } else {
-    await router.push('/managePage')
+    removeLocalData('imgFile')
   }
 }
 </script>
@@ -58,7 +59,7 @@ const login = async () => {
           <el-input v-model="form.email"></el-input>
         </el-form-item>
         <el-form-item label="密码：" prop="password">
-          <el-input v-model="form.password"></el-input>
+          <el-input type="password" v-model="form.password"></el-input>
         </el-form-item>
       </el-form>
       <el-button type="primary" @click="login">登录</el-button>

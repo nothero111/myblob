@@ -3,48 +3,11 @@
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { ref, watch } from 'vue'
 import 'highlight.js/styles/github.css'
-import { uploadArticle, uploadImg } from '@/api/article.js'
+import { getAllArticle, uploadArticle, uploadImg } from '@/api/article.js'
 import { getlocaldata, setlocaldata } from '@/utils/localstorage.js'
-import { ElMessage } from 'element-plus' // 引入高亮主题样式
+import { formatTimestampWithDayjs } from '@/utils/daysformat.js' // 引入高亮主题样式
 const drawer = ref(false)
-const tableData = [
-  {
-    date: '2016-05-03',
-    title: '标题',
-    name: '小浪花',
-    content: '内容，，。。。。。。。。。。。。。。。。。。'
-  },
-  {
-    date: '2016-05-03',
-    title: '标题',
-    name: '小浪花',
-    content: '内容，，。。。。。。。。。。。。。。。。。。'
-  },
-  {
-    date: '2016-05-03',
-    title: '标题',
-    name: '小浪花',
-    content: '内容，，。。。。。。。。。。。。。。。。。。'
-  },
-  {
-    date: '2016-05-03',
-    title: '标题',
-    name: '小浪花',
-    content: '内容，，。。。。。。。。。。。。。。。。。。'
-  },
-  {
-    date: '2016-05-03',
-    title: '标题',
-    name: '小浪花',
-    content: '内容，，。。。。。。。。。。。。。。。。。。'
-  },
-  {
-    date: '2016-05-03',
-    title: '标题',
-    name: '小浪花',
-    content: '内容，，。。。。。。。。。。。。。。。。。。'
-  }
-]
+let tableData = ref([])
 const drawer_title = ref('添加文章')
 const defaultfrom = {
   imgFile: [], // 存储图片路径
@@ -52,7 +15,8 @@ const defaultfrom = {
   title: '', // 标题
   category: '', // 分类
   date: '', // 发布时间
-  name: '' // 作者
+  name: '', // 作者
+  summary: '' // 摘要
 }
 let imgFile = ref([]) // 创建一个文件数组，用来存储上传的文件路径，便于删除
 let currentImageList = ref([]) // 定义一个数组用来存储用正则匹配到的到的图片路径
@@ -61,23 +25,31 @@ let imgUrl = ref() // 创建一个图片路径，用来存储上传的图片路�
 const form = ref({
   ...defaultfrom
 })
+const getArticle = async () => {
+  // 获取文章列表
+  const res = await getAllArticle(0, -1, 0)
+  console.log(res.data.articles)
+  res.data.articles.forEach((item) => {
+    item.date = formatTimestampWithDayjs(item.date)
+  })
+  tableData.value = res.data.articles
+}
+getArticle()
 const editmyArticle = () => {
   drawer_title.value = '编辑文章'
   drawer.value = true
   // 在编辑文章的时候获取文章信息
 }
-
 watch(
   form,
   async (newVal) => {
     if (drawer_title.value === '添加文章') {
       // 存入本地，v2版本引入自动保存
-      await setlocaldata('form', newVal)
+      setlocaldata('form', newVal)
     }
   },
   { deep: true }
 )
-
 // 添加文章
 const addArticle = async () => {
   drawer_title.value = '添加文章'
@@ -115,6 +87,10 @@ const selectOption = [
     label: '数学'
   },
   {
+    value: '技术',
+    label: '技术'
+  },
+  {
     value: '其他',
     label: '其他'
   }
@@ -135,7 +111,7 @@ const uploadMyImg = async (pos, file) => {
   // 调用上传图片接口
   const res = await uploadImg(formdata)
   imgFile.value[pos] = res.data.url
-  await setlocaldata('imgFile', imgFile.value) // 把图片数组存到本地
+  setlocaldata('imgFile', imgFile.value) // 把图片数组存到本地
   return res
 }
 // 工具函数：从Markdown提取图片URL
@@ -145,13 +121,12 @@ function extractImagesFromMarkdown(md) {
   return Array.from(matches).map((match) => match[1])
 }
 // 工具函数，比较两个函数的不同之处
-
 const save = async (value) => {
   if (drawer_title.value === '添加文章') {
     form.value.content = value
     // 存入本地，v2版本引入自动保存
-    await setlocaldata('content', value)
-    await setlocaldata('imgFile', imgFile.value)
+    setlocaldata('content', value)
+    setlocaldata('imgFile', imgFile.value)
   }
 }
 const handleEditorImgAdd = async (pos, $file) => {
@@ -178,7 +153,7 @@ const handleEditorImgAdd = async (pos, $file) => {
       }
       form.value.content = insertStr(str, index, nStr)
     }
-    await setlocaldata('content', form.value.content)
+    setlocaldata('content', form.value.content)
   }
 }
 // 图片的即时删除太麻烦了，考虑到博客的流量不会太大，所以，把所有图片全部上传
@@ -208,13 +183,12 @@ const Publish = async () => {
   form.value.name = (await getlocaldata('user')).user.name
   form.value.imgFile = await getlocaldata('imgFile')
   // 调用上传文章接口
-  const res = await uploadArticle(form.value)
-  ElMessage.success(res.data.message)
-  form.value = defaultfrom
-  await setlocaldata('form', {})
-  await setlocaldata('imgFile', [])
-  await setlocaldata('content', '')
-  imgUrl.value = null
+  await uploadArticle(form.value)
+  ElMessage.success('上传成功')
+  form.value = {}
+  imgUrl.value = ''
+  imgFile.value = []
+  setlocaldata('imgFile', imgFile.value)
 }
 </script>
 
@@ -223,12 +197,32 @@ const Publish = async () => {
     <el-header></el-header>
     <el-main>
       <!--      文章管理的表格-->
-      <el-card class="manageArticle">
+      <el-card class="manageArticle" style="height: auto">
         <el-button @click="addArticle"> 添加文章 </el-button>
-        <el-table :data="tableData" style="width: 100%" border height="250">
-          <el-table-column prop="date" label="日期" width="180" />
+        <el-table :data="tableData" style="width: 100%" border height="600">
+          <el-table-column
+            type="index"
+            label="序号"
+            width="100"
+            index=""
+            align="center"
+          />
           <el-table-column prop="title" label="标题  " width="180" />
-          <el-table-column prop="name" label="文章名称" width="180" />
+          <el-table-column prop="category" label="分类" width="180" />
+          <el-table-column prop="summary" label="摘要" width="180" />
+          <el-table-column prop="imgFile" label="封面" width="180">
+            <template #default="scope">
+              <!-- 绑定 src 到当前行的 imgFile 属性 -->
+              <img
+                :src="scope.row.imgFile[0]"
+                alt="封面"
+                width="100"
+                height="100"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="date" label="日期" width="180" />
+          <el-table-column prop="name" label="作者" width="180" />
           <el-table-column prop="content" label="内容" />
           <el-table-column prop="operation" label="操作">
             <el-button type="primary" circle>
@@ -266,6 +260,17 @@ const Publish = async () => {
                     :value="item.value"
                   />
                 </el-select>
+              </el-form-item>
+              <el-form-item
+                label="文章摘要"
+                prop="summary"
+                style="width: 320px"
+              >
+                <el-input
+                  v-model="form.summary"
+                  type="textarea"
+                  placeholder="请输入文章文章摘要"
+                />
               </el-form-item>
               <el-form-item label="文章封面" prop="cover_img">
                 <!--        此处需要关闭element的自动上传-->

@@ -13,3 +13,13 @@ export const DeleteImg = async (data) => {
 export const uploadArticle = async (formdata) => {
   return await request.post('/api/articledbs/add', formdata)
 }
+// 获取全部文章
+export const getAllArticle = async (category, pageNum, pageSize) => {
+  return await request.get('/api/articledbs/getArticle', {
+    params: {
+      category,
+      pageNum, // 当pageNum为-1时，表示获取全部文章
+      pageSize
+    }
+  })
+}

@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/index.js'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -32,5 +34,22 @@ const router = createRouter({
     }
   ]
 })
-
+router.beforeEach(async (to, from) => {
+  const userStore = useUserStore()
+  if (to.path === '/login') {
+    return true
+  }
+  if (!userStore.token && to.path === '/managePage') {
+    return { name: '/login' }
+  }
+  if (
+    userStore.token &&
+    to.path === 'managePage' &&
+    userStore.user.level !== 'super'
+  ) {
+    ElMessage.warning('您没有权限访问该页面')
+    return { name: '/welcomePage' }
+  }
+  // 将用户重定向到登录页面
+})
 export default router

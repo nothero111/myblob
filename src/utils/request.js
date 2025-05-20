@@ -1,21 +1,20 @@
 import axios from 'axios'
 import { useUserStore } from '@/stores/index.js'
-import { ElMessage } from 'element-plus'
-import router from '@/router/index.js'
 
+// 然后在拦截器中使用
+import router from '@/router/index.js'
 const baseURL = 'http://127.0.0.1:7001' // 根目录
 const instance = axios.create({
   baseURL,
   timeout: 10000,
   headers: { 'X-Custom-Header': 'foobar' }
 })
-
+const userUseStore = useUserStore() // 正确用法
 // 请求拦截器
 instance.interceptors.request.use(
   function (config) {
-    const useStore = useUserStore()
-    if (useStore.token) {
-      config.headers.Authorization = useStore.token
+    if (userUseStore.token) {
+      config.headers.Authorization = userUseStore.token
     }
     return config
   },
@@ -26,27 +25,27 @@ instance.interceptors.request.use(
 )
 
 // 添加响应拦截器
-axios.interceptors.response.use(
+instance.interceptors.response.use(
   function (response) {
     // 状态码是0是正常状态
     if (response.data.code === 0) {
       return response
     }
     // 状态码不是0是错误状态，给错误提示，并且抛出错误
-    ElMessage.error(response.data.message || '服务异常')
+    ElMessage.success(response.data.message || '服务异常')
     return Promise.reject(response.data)
   },
   async function (error) {
+    console.log(error)
+    ElMessage.error(error.response.data.message || '服务异常')
     // 401是权限不足
-    if (error.response.status === 401) {
+    if (error.status === 401) {
       await router.push('/login')
+      return Promise.reject(new Error('未授权，已跳转登录页')) // 明确返回拒绝
     }
-
-    ElMessage.error(error.data.message || '服务异常')
     return Promise.reject(error)
   }
 )
-
 export default instance
 
 export { baseURL }

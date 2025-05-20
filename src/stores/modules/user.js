@@ -29,6 +29,12 @@ export const useUserStore = defineStore(
     }
   },
   {
-    persist: true
+    persist: {
+      enabled: true,
+      // 以下为可选配置
+      key: 'user',
+      storage: localStorage,
+      paths: ['token', 'user']
+    }
   }
 )

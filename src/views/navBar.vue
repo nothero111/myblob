@@ -82,13 +82,14 @@ const handleSelect = () => {}
 
 <style lang="scss" scoped>
 .el-main {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  //height: 100%;
+  overflow: hidden;
   --el-main-padding: 0;
 }
 .el-menu--horizontal {
   --el-menu-horizontal-height: 60px;
-  background-color: $primary-color;
+  background-color: transparent;
   width: 100% !important;
   .el-menu-item {
     font-size: 15px;
