@@ -23,3 +23,11 @@ export const getAllArticle = async (category, pageNum, pageSize) => {
     }
   })
 }
+// 获取文章详情
+export const getArticleDetail = async (id) => {
+  return await request.get('/api/articledbs/getArticleDetail/' + id)
+}
+// 获取标签
+export const getTags = async () => {
+  return await request.get('/api/articledbs/getTags')
+}

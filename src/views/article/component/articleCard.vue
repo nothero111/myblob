@@ -49,7 +49,9 @@ const formatDate = (dateString) => {
       </div>
     </div>
     <el-divider />
-    <p class="article-summary">{{ article.summary }}</p>
+    <p class="article-summary">
+      <i>{{ article.summary }}</i>
+    </p>
   </el-card>
 </template>
 
@@ -113,10 +115,14 @@ const formatDate = (dateString) => {
     font-size: 20px;
     margin-left: 20px;
   }
+  h3:hover {
+    color: #409eff;
+  }
 }
 
 /* 交互效果 */
 .article-card:hover {
+  cursor: pointer;
   transform: translateY(-5px);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
 

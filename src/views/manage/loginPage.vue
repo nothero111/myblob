@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useUserStore } from '@/stores/index.js'
 import { userLoginService } from '@/api/user.js'
 import { useRouter } from 'vue-router'
-import { removeLocalData } from '@/utils/localstorage.js'
+import { setlocaldata } from '@/utils/localstorage.js'
 const form = ref({
   email: '',
   password: ''
@@ -31,12 +31,14 @@ const login = async () => {
     email: form.value.email,
     password: form.value.password
   })
+  console.log(res.data)
   userUserStore.setToken(res.data.token)
   userUserStore.setUser(res.data.userinfo)
   if (res.data.userinfo.level === 'normal') {
     await router.push('/')
   } else {
-    removeLocalData('imgFile')
+    setlocaldata('user', res.data.userinfo)
+    await router.push('/managePage')
   }
 }
 </script>

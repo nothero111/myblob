@@ -19,6 +19,7 @@
               v-for="article in articles"
               :article="article"
               :key="article._id"
+              @click="clickCard(article._id)"
             ></article-card>
           </div>
           <el-button
@@ -37,7 +38,7 @@
           >
         </el-main>
         <el-main v-else>
-          <el-empty description="空空如也" />
+          <el-empty style="width: 800px" description="空空如也" />
         </el-main>
         <el-footer></el-footer>
       </el-tab-pane>
@@ -98,7 +99,7 @@
         <el-text
           type="info"
           style="width: fit-content; display: block; margin: 20px auto"
-          >备案/许可证 粤ICP备xxxxxxxx号</el-text
+          >备案/许可证 豫ICP备xxxxxxxx号</el-text
         >
       </el-footer>
     </el-tabs>
@@ -106,9 +107,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import ArticleCard from '@/views/article/component/articleCard.vue'
 import { getAllArticle } from '@/api/article.js'
+import { useRouter } from 'vue-router'
+defineOptions({
+  name: 'ArticlePage'
+})
+const router = useRouter()
 const tabs = [
   {
     label: '全部',
@@ -144,22 +150,40 @@ const articles = ref([])
 let hasNextPage = ref(true) // 默认有下一页
 let CountArticles = ref(0)
 const pageNum = 1
-let pageSize = 8
+const pageSize = ref(8)
+// 操控点击卡片跳转事件
+// 在原标签页的代码中临时添加
+const clickCard = (id) => {
+  const targetRoute = router.resolve({
+    name: 'detailPage',
+    query: {
+      // 可选：传递参数（会自动进行URL编码）
+      id
+    },
+    hash: '#section-2' // 可选：锚点定位
+  })
+
+  // 2. 打开新标签页
+  window.open(
+    targetRoute.href, // 完整URL路径
+    '_blank' // 目标窗口名称
+  )
+}
 const handleClick = async (tab) => {
   hasNextPage.value = false
   if (tab.paneName !== activeName.value) {
-    pageSize = 8
-    await getArticle(tab.paneName, pageNum, pageSize)
-    if (CountArticles.value > pageSize * pageNum) {
+    pageSize.value = 8
+    await getArticle(tab.paneName, pageNum, pageSize.value)
+    if (CountArticles.value > pageSize.value * pageNum) {
       hasNextPage.value = true
     }
   }
 }
 // 点击加载更多后
 const loadingMore = () => {
-  pageSize += 8
-  getArticle(activeName.value, pageNum, pageSize)
-  if (CountArticles.value <= pageSize * pageNum) {
+  pageSize.value += 8
+  getArticle(activeName.value, pageNum, pageSize.value)
+  if (CountArticles.value <= pageSize.value * pageNum) {
     hasNextPage.value = false
   }
 }
@@ -170,7 +194,7 @@ const getArticle = async (category, pageNum, pageSize) => {
   CountArticles.value = res.data.CountArticles
   console.log(CountArticles.value)
 }
-getArticle(activeName.value, pageNum, pageSize)
+getArticle(activeName.value, pageNum, pageSize.value)
 </script>
 
 <style scoped lang="scss">
@@ -185,6 +209,7 @@ getArticle(activeName.value, pageNum, pageSize)
 .body {
   background: $primary-color;
   margin-top: 60px;
+  height: 100vh;
   overflow: hidden;
   .friends {
     font-size: 20px;

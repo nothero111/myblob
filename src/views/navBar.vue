@@ -6,6 +6,7 @@ const Route = useRoute()
 console.log(Route.path)
 const input = ref('')
 const handleSelect = () => {}
+const cachedViews = ref(['ArticlePage']) // 需要缓存的组件名列表
 </script>
 <template>
   <el-container>
@@ -75,7 +76,13 @@ const handleSelect = () => {}
       </div>
     </el-header>
     <el-main>
-      <router-view></router-view>
+      <router-view v-slot="{ Component, route }">
+        <!-- 动态缓存需要保持状态的页面 -->
+        <!--        include属性仅仅缓存需要缓存的属性-->
+        <keep-alive :include="cachedViews">
+          <component :is="Component" :key="route.path" />
+        </keep-alive>
+      </router-view>
     </el-main>
   </el-container>
 </template>

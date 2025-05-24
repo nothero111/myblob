@@ -19,6 +19,7 @@
     "element-plus": "^2.9.8",
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",
+    "marked": "^15.0.12",
     "mavon-editor": "3.0.2",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.2.0",

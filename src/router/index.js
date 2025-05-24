@@ -18,7 +18,8 @@ const router = createRouter({
         {
           path: 'Article', //文章页面
           name: 'ArticlePage',
-          component: () => import('@/views/article/myArticle.vue') // 明确加载组件
+          component: () => import('@/views/article/myArticle.vue'), // 明确加载组件
+          meta: { keepAlive: true, scrollPosition: 0 } // 通过meta标记是否需要加载缓存,以及记录滚动的位置
         }
       ]
     },
@@ -31,8 +32,20 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/manage/loginPage.vue') // 明确加载组件
+    },
+    {
+      path: '/detailPage',
+      name: 'detailPage',
+      component: () => import('@/views/ArticleDetail/detailPage.vue') // 明确加载组件
     }
-  ]
+  ],
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition // 浏览器后退/前进时恢复位置
+    } else {
+      return { top: to.meta.scrollPosition || 0 }
+    }
+  }
 })
 router.beforeEach(async (to, from) => {
   const userStore = useUserStore()
@@ -40,7 +53,7 @@ router.beforeEach(async (to, from) => {
     return true
   }
   if (!userStore.token && to.path === '/managePage') {
-    return { name: '/login' }
+    return { name: 'login' }
   }
   if (
     userStore.token &&

@@ -3,12 +3,18 @@
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { ref, watch } from 'vue'
 import 'highlight.js/styles/github.css'
-import { getAllArticle, uploadArticle, uploadImg } from '@/api/article.js'
+import {
+  getAllArticle,
+  getTags,
+  uploadArticle,
+  uploadImg
+} from '@/api/article.js'
 import { getlocaldata, setlocaldata } from '@/utils/localstorage.js'
 import { formatTimestampWithDayjs } from '@/utils/daysformat.js' // 引入高亮主题样式
 const drawer = ref(false)
 let tableData = ref([])
 const drawer_title = ref('添加文章')
+const Stringtags = ref('') // 定义一个字符串用来存储自定义标签
 const defaultfrom = {
   imgFile: [], // 存储图片路径
   content: '', // markdown文本
@@ -16,8 +22,10 @@ const defaultfrom = {
   category: '', // 分类
   date: '', // 发布时间
   name: '', // 作者
-  summary: '' // 摘要
+  summary: '', // 摘要
+  tags: []
 }
+let tags = ref([]) // 定义一个数组用来存储标签
 let imgFile = ref([]) // 创建一个文件数组，用来存储上传的文件路径，便于删除
 let currentImageList = ref([]) // 定义一个数组用来存储用正则匹配到的到的图片路径
 let imgUrl = ref() // 创建一个图片路径，用来存储上传的图片路径，便于预览
@@ -26,6 +34,12 @@ const form = ref({
   ...defaultfrom
 })
 const getArticle = async () => {
+  // 获取标签列表
+  const re = await getTags()
+  re.data.tags.forEach((item) => {
+    // 定义一个choose属性，用来判断标签是否被选中
+    tags.value.push({ tag: item.tag, choosed: false })
+  })
   // 获取文章列表
   const res = await getAllArticle(0, -1, 0)
   console.log(res.data.articles)
@@ -44,7 +58,6 @@ watch(
   form,
   async (newVal) => {
     if (drawer_title.value === '添加文章') {
-      // 存入本地，v2版本引入自动保存
       setlocaldata('form', newVal)
     }
   },
@@ -57,8 +70,10 @@ const addArticle = async () => {
   // 在添加文章的时候获取文章的草稿内容
   const content = await getlocaldata('content')
   const imgFiles = await getlocaldata('imgFile')
-  form.value = await getlocaldata('form')
-
+  const form = await getlocaldata('form')
+  if (form) {
+    form.value = form
+  }
   if (content) {
     // 确保本地有内容再取，防止content被覆盖为null而报错
     form.value.content = content
@@ -164,6 +179,13 @@ const handleEditorImgDel = (pos) => {
   setlocaldata('imgFile', imgFile.value)
   setlocaldata('content', form.value.content)
 }
+// 处理用户自己的自定义标签
+function getTagArray(str) {
+  // 1. 用#分割字符串
+  // 2. 过滤空字符串（处理开头/结尾/连续#的情况）
+  // 3. 返回过滤后的数组
+  return str.split('#').filter((item) => item !== '')
+}
 const change = async (value) => {
   // 实时更新当前图片列表
   currentImageList.value = extractImagesFromMarkdown(value)
@@ -171,23 +193,38 @@ const change = async (value) => {
   currentImageList.value.forEach((item, index) => {
     imgFile.value[index + 1] = item
   })
+  console.log(form.value)
   // 在编辑文章的时候，如果修改了文章信息，需要把修改后的信息存入本地
   await setlocaldata('imgFile', imgFile.value)
+  console.log(form.value.content)
   await setlocaldata('content', form.value.content)
   await setlocaldata('form', form.value)
 }
-// 上传文件
+// 上传文章
 const Publish = async () => {
   form.value = await getlocaldata('form')
+  const Arraytag = getTagArray(Stringtags.value)
+  console.log(form.value.tags)
+  Arraytag.forEach((item) => {
+    form.value.tags.push(item)
+  })
+  tags.value.forEach((item) => {
+    if (item.choosed) {
+      form.value.tags.push(item.tag)
+    }
+  })
   form.value.date = Date.now().toString()
   form.value.name = (await getlocaldata('user')).user.name
   form.value.imgFile = await getlocaldata('imgFile')
+  console.log(form.value.tags)
+  console.log(form.value)
   // 调用上传文章接口
   await uploadArticle(form.value)
   ElMessage.success('上传成功')
   form.value = {}
   imgUrl.value = ''
   imgFile.value = []
+  form.value.tags = []
   setlocaldata('imgFile', imgFile.value)
 }
 </script>
@@ -200,16 +237,15 @@ const Publish = async () => {
       <el-card class="manageArticle" style="height: auto">
         <el-button @click="addArticle"> 添加文章 </el-button>
         <el-table :data="tableData" style="width: 100%" border height="600">
-          <el-table-column
-            type="index"
-            label="序号"
-            width="100"
-            index=""
-            align="center"
-          />
-          <el-table-column prop="title" label="标题  " width="180" />
+          <el-table-column type="index" label="序号" align="center" />
+          <el-table-column prop="title" label="标题" />
           <el-table-column prop="category" label="分类" width="180" />
-          <el-table-column prop="summary" label="摘要" width="180" />
+          <el-table-column
+            prop="summary"
+            label="摘要"
+            width="180"
+            height="200"
+          />
           <el-table-column prop="imgFile" label="封面" width="180">
             <template #default="scope">
               <!-- 绑定 src 到当前行的 imgFile 属性 -->
@@ -223,14 +259,21 @@ const Publish = async () => {
           </el-table-column>
           <el-table-column prop="date" label="日期" width="180" />
           <el-table-column prop="name" label="作者" width="180" />
-          <el-table-column prop="content" label="内容" />
+          <el-table-column
+            prop="content"
+            show-overflow-tooltip
+            label="内容"
+            width="300"
+          />
           <el-table-column prop="operation" label="操作">
-            <el-button type="primary" circle>
-              <el-icon><Edit @click="editmyArticle" /></el-icon>
-            </el-button>
-            <el-button type="danger" circle>
-              <el-icon><Delete /></el-icon>
-            </el-button>
+            <div style="display: flex; flex-direction: row">
+              <el-button type="primary" circle>
+                <el-icon><Edit @click="editmyArticle" /></el-icon>
+              </el-button>
+              <el-button type="danger" circle>
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
           </el-table-column>
         </el-table>
         <el-drawer
@@ -241,11 +284,27 @@ const Publish = async () => {
         >
           <el-card class="articleForm">
             <!--          一个form表单用来提交文章信息-->
-            <el-form v-model="form" ref="formRef" label-width="100px">
-              <el-form-item label="文章标题" prop="title" style="width: 340px">
+            <el-form label-width="100px">
+              <el-form-item label="文章标题" style="width: 340px">
                 <el-input v-model="form.title" placeholder="请输入文章标题" />
               </el-form-item>
-              <el-form-item label="文章分类" prop="category">
+              <el-form-item label="文章标签">
+                <el-checkbox-button
+                  @click="tag.choosed = !tag.choosed"
+                  v-for="tag in tags"
+                  :key="tag.tag"
+                  :value="tag.tag"
+                >
+                  {{ tag.tag }}
+                </el-checkbox-button>
+              </el-form-item>
+              <el-form-item label="自定义标签" style="width: 340px">
+                <el-input
+                  v-model="Stringtags"
+                  placeholder="请输入自定义标签，例如#vue#js"
+                />
+              </el-form-item>
+              <el-form-item label="文章分类">
                 <!--        下面封装成组件，属性变成了数据，需要对数据进行逻辑处理才能实现想要的功能-->
                 <el-select
                   v-model="form.category"
@@ -261,18 +320,14 @@ const Publish = async () => {
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item
-                label="文章摘要"
-                prop="summary"
-                style="width: 320px"
-              >
+              <el-form-item label="文章摘要" style="width: 320px">
                 <el-input
                   v-model="form.summary"
                   type="textarea"
                   placeholder="请输入文章文章摘要"
                 />
               </el-form-item>
-              <el-form-item label="文章封面" prop="cover_img">
+              <el-form-item label="文章封面">
                 <!--        此处需要关闭element的自动上传-->
                 <!--        此处仅需要做预览即可-->
                 <!--        语法 URL.createObjectURL(...)创建本地预览的地址-->
@@ -288,7 +343,7 @@ const Publish = async () => {
                   /></el-icon>
                 </el-upload>
               </el-form-item>
-              <el-form-item label="文章内容" prop="content">
+              <el-form-item label="文章内容">
                 <div id="app">
                   <mavon-editor
                     style="height: 800px"
@@ -353,7 +408,7 @@ const Publish = async () => {
   background: url('../../assets/adminPic.png');
   align-items: center;
   .manageArticle {
-    width: 80vw;
+    width: 95vw;
     height: 600px;
     background-color: rgba(255, 255, 255, 0.5);
     border-radius: 20px;
